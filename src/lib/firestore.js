@@ -172,7 +172,7 @@ export async function getUserProfile(userId) {
 }
 
 export async function updateUserProfile(userId, data) {
-  await updateDoc(doc(db, 'users', userId), { ...data, updatedAt: serverTimestamp() });
+  await setDoc(doc(db, 'users', userId), { ...data, updatedAt: serverTimestamp() }, { merge: true });
 }
 
 // ── FOLLOW ────────────────────────────────────────────────────────────────────

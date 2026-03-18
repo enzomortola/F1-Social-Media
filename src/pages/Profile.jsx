@@ -45,6 +45,17 @@ export default function Profile() {
         setBio('');
         setFavTeam('');
         setFavDriver('');
+      } else if (!p && r.length > 0) {
+        // Generar un perfil sintético usando los datos de sus propias reviews 
+        // para usuarios que no tengan documento de perfil creado.
+        setProfile({
+          displayName: r[0].username || 'Usuario Anónimo',
+          photoURL: r[0].userAvatar || null,
+          bio: '', favoriteTeam: '', favoriteDriver: ''
+        });
+        setBio('');
+        setFavTeam('');
+        setFavDriver('');
       } else {
         setProfile(p);
         if (p) {
@@ -64,16 +75,22 @@ export default function Profile() {
   async function handleSave(e) {
     e.preventDefault();
     try {
-      // Usamos createUserProfile para asegurar que el documento exista (upsert)
-      await createUserProfile(user.uid, { 
-        displayName: user.displayName, 
-        email: user.email, 
-        photoURL: user.photoURL 
-      });
-      // Luego actualizamos los campos personalizados
-      await updateUserProfile(user.uid, { bio, favoriteTeam: favTeam, favoriteDriver: favDriver });
+      // Usamos setDoc con { merge: true } para actualizar o crear el documento 
+      // sin sobreescribir destructivamente arreglos o contadores (como hace createUserProfile por error)
+      const dataToSave = {
+        bio: bio || '',
+        favoriteTeam: favTeam || '',
+        favoriteDriver: favDriver || '',
+      };
+      // Por si el usuario no tenía el documento principal, le añadimos datos básicos provenientes de Auth
+      if (user.displayName) dataToSave.displayName = user.displayName;
+      if (user.photoURL) dataToSave.photoURL = user.photoURL;
+      
+      // Actualizamos en Firebase
+      await updateUserProfile(user.uid, dataToSave);
+      
       await refreshProfile();
-      setProfile(prev => ({ ...prev, bio, favoriteTeam: favTeam, favoriteDriver: favDriver }));
+      setProfile(prev => ({ ...prev, ...dataToSave }));
       setIsEditing(false);
       toast('Perfil actualizado ✓', 'success');
     } catch (err) {
@@ -96,7 +113,7 @@ export default function Profile() {
     if (isOwner && user) {
       // Si todo falló, mostramos un fallback en el render
       return (
-        <div className="page-wrapper loading-center orbitron" style={{ flexDirection: 'column' }}>
+        <div className="page-wrapper loading-center orbitron" style={{ flexDirection: 'column', paddingTop: '100px' }}>
           <h2>Hubo un error cargando tus datos</h2>
           <p style={{ marginTop: 10, fontSize: '1rem', color: 'var(--text-muted)' }}>
             Intentá refrescar la página. Si el problema persiste, revisá los permisos de Firebase.
@@ -104,7 +121,14 @@ export default function Profile() {
         </div>
       );
     }
-    return <div className="page-wrapper loading-center orbitron">Perfil no encontrado</div>;
+    return (
+      <div className="page-wrapper loading-center orbitron" style={{ flexDirection: 'column', paddingTop: '100px' }}>
+        <h2>Perfil no encontrado</h2>
+        <p style={{ marginTop: 10, fontSize: '1rem', color: 'var(--text-muted)', fontFamily: 'Inter' }}>
+          Este usuario aún no configuró su perfil o no existe.
+        </p>
+      </div>
+    );
   }
 
   const initials = profile.displayName?.slice(0, 2).toUpperCase() || '??';
@@ -146,6 +170,28 @@ export default function Profile() {
     if (id.includes('haas')) return 'https://upload.wikimedia.org/wikipedia/commons/f/f9/MoneyGram_Haas_F1_Team_Logo.svg';
     if (id.includes('rb') || id.includes('alphatauri') || id.includes('toro rosso')) return 'https://upload.wikimedia.org/wikipedia/commons/4/4d/Visa_Cash_App_RB_logo.svg';
     if (id.includes('cadillac')) return 'https://upload.wikimedia.org/wikipedia/commons/1/1d/Cadillac_wordmark.svg';
+    return null;
+  };
+
+  const getDriverImageUrl = (driver) => {
+    if (!driver) return null;
+    const n = driver.toLowerCase();
+    if (n.includes('colapinto')) return 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d9/Franco_Colapinto_-_2024_British_Grand_Prix_%28cropped%29.jpg/640px-Franco_Colapinto_-_2024_British_Grand_Prix_%28cropped%29.jpg';
+    if (n.includes('verstappen')) return 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png';
+    if (n.includes('hamilton')) return 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LEWHAM01_Lewis_Hamilton/lewham01.png';
+    if (n.includes('leclerc')) return 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/C/CHALEC01_Charles_Leclerc/chalec01.png';
+    if (n.includes('norris')) return 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LANNOR01_Lando_Norris/lannor01.png';
+    if (n.includes('sainz')) return 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/C/CARSAI01_Carlos_Sainz/carsai01.png';
+    if (n.includes('alonso')) return 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/F/FERALO01_Fernando_Alonso/feralo01.png';
+    if (n.includes('piastri')) return 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/O/OSCPIA01_Oscar_Piastri/oscpia01.png';
+    if (n.includes('russell')) return 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/G/GEORUS01_George_Russell/georus01.png';
+    if (n.includes('perez')) return 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/S/SERPER01_Sergio_Perez/serper01.png';
+    if (n.includes('albon')) return 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/A/ALEALB01_Alexander_Albon/alealb01.png';
+    if (n.includes('tsunoda')) return 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/Y/YUKTSU01_Yuki_Tsunoda/yuktsu01.png';
+    if (n.includes('ocon')) return 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/E/ESTOCO01_Esteban_Ocon/estoco01.png';
+    if (n.includes('gasly')) return 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/P/PIEGAS01_Pierre_Gasly/piegas01.png';
+    if (n.includes('stroll')) return 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LANSTR01_Lance_Stroll/lanstr01.png';
+    if (n.includes('hulkenberg')) return 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/N/NICHUL01_Nico_Hulkenberg/nichul01.png';
     return null;
   };
 
@@ -210,7 +256,21 @@ export default function Profile() {
                       <div className="widget-card" style={{ borderColor: 'var(--gold)', background: 'linear-gradient(135deg, rgba(255,215,0,0.1), transparent)' }}>
                         <div className="widget-bg" style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '10px 10px', opacity: 0.05 }}></div>
                         <div className="widget-label">🏎️ Piloto Favorito</div>
-                        <div className="widget-value" style={{ color: 'var(--gold)' }}>{profile.favoriteDriver}</div>
+                        <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
+                          <div className="widget-value" style={{ color: 'var(--gold)' }}>{profile.favoriteDriver}</div>
+                          {getDriverImageUrl(profile.favoriteDriver) && (
+                            <img 
+                              src={getDriverImageUrl(profile.favoriteDriver)} 
+                              alt={profile.favoriteDriver} 
+                              style={{ 
+                                maxHeight: 60, 
+                                maxWidth: '35%', 
+                                objectFit: 'contain', 
+                                filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.5))'
+                              }} 
+                            />
+                          )}
+                        </div>
                       </div>
                     )}
                     {isTeamSet && (
@@ -249,7 +309,32 @@ export default function Profile() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20 }}>
                   <div className="form-group">
                     <label className="label">Piloto Favorito</label>
-                    <input className="input" value={favDriver} onChange={e => setFavDriver(e.target.value)} placeholder="Ej: Franco Colapinto" />
+                    <select className="select" value={favDriver} onChange={e => setFavDriver(e.target.value)}>
+                      <option value="">Seleccioná un piloto...</option>
+                      <option value="Franco Colapinto">Franco Colapinto</option>
+                      <option value="Max Verstappen">Max Verstappen</option>
+                      <option value="Lando Norris">Lando Norris</option>
+                      <option value="Charles Leclerc">Charles Leclerc</option>
+                      <option value="Oscar Piastri">Oscar Piastri</option>
+                      <option value="Carlos Sainz">Carlos Sainz</option>
+                      <option value="Lewis Hamilton">Lewis Hamilton</option>
+                      <option value="George Russell">George Russell</option>
+                      <option value="Fernando Alonso">Fernando Alonso</option>
+                      <option value="Sergio Perez">Sergio Perez</option>
+                      <option value="Alexander Albon">Alexander Albon</option>
+                      <option value="Yuki Tsunoda">Yuki Tsunoda</option>
+                      <option value="Liam Lawson">Liam Lawson</option>
+                      <option value="Esteban Ocon">Esteban Ocon</option>
+                      <option value="Pierre Gasly">Pierre Gasly</option>
+                      <option value="Nico Hulkenberg">Nico Hulkenberg</option>
+                      <option value="Lance Stroll">Lance Stroll</option>
+                      <option value="Valtteri Bottas">Valtteri Bottas</option>
+                      <option value="Zhou Guanyu">Zhou Guanyu</option>
+                      <option value="Oliver Bearman">Oliver Bearman</option>
+                      <option value="Jack Doohan">Jack Doohan</option>
+                      <option value="Gabriel Bortoleto">Gabriel Bortoleto</option>
+                      <option value="Kimi Antonelli">Kimi Antonelli</option>
+                    </select>
                   </div>
                   <div className="form-group">
                     <label className="label">Escudería Favorita</label>
