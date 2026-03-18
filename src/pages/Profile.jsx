@@ -241,7 +241,7 @@ export default function Profile() {
               </>
             ) : (
               <form onSubmit={handleSave} style={{ background: 'var(--bg-card)', padding: 32, borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', marginTop: 20 }}>
-                <h3 style={{ marginBottom: 20 }}>Configurar tu PitWall</h3>
+                <h3 style={{ marginBottom: 20 }}>Configurar tu Perfil Social</h3>
                 <div className="form-group">
                   <label className="label">Biografía (Compartí tu pasión por la F1)</label>
                   <textarea className="textarea" value={bio} onChange={e => setBio(e.target.value)} rows={3} maxLength={150} placeholder="Ej: Fanático desde la era V10..." />

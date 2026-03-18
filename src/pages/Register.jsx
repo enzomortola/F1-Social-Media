@@ -19,7 +19,7 @@ export default function Register() {
     try {
       await register(email, password, username);
       navigate('/profile');
-      toast('Bienvenido a PitWall ✓', 'success');
+      toast('Bienvenido a F1 Social App ✓', 'success');
     } catch (err) {
       toast('Error al crear cuenta. ' + err.code, 'error');
     } finally {
@@ -31,7 +31,7 @@ export default function Register() {
     try {
       await loginWithGoogle();
       navigate('/profile');
-      toast('Bienvenido a PitWall ✓', 'success');
+      toast('Bienvenido a F1 Social App ✓', 'success');
     } catch (err) {
       toast('Error con Google.', 'error');
     }
@@ -42,7 +42,7 @@ export default function Register() {
       <div className="auth-card">
         <div className="auth-logo">
           <Link to="/" className="logo" style={{ fontSize: '1.6rem' }}>
-            <span className="logo-icon">⬡</span> PitWall
+            <span className="logo-icon">⬡</span> F1 Social App
           </Link>
         </div>
         <h1 className="auth-title">Sumate al PitCrew</h1>

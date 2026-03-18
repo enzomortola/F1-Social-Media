@@ -71,7 +71,7 @@ export default function Home() {
             </p>
             <div className="hero-cta">
               <Link to="/races" className="btn btn-primary btn-lg">Ver Grandes Premios</Link>
-              <Link to="/register" className="btn btn-ghost btn-lg">Unirte a PitWall</Link>
+              <Link to="/register" className="btn btn-ghost btn-lg">Unirte a la Comunidad</Link>
             </div>
             <div className="hero-stats">
               <div className="stat-item">

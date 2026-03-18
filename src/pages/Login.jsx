@@ -39,7 +39,7 @@ export default function Login() {
       <div className="auth-card">
         <div className="auth-logo">
           <Link to="/" className="logo" style={{ fontSize: '1.6rem' }}>
-            <span className="logo-icon">⬡</span> PitWall
+            <span className="logo-icon">⬡</span> F1 Social App
           </Link>
         </div>
         <h1 className="auth-title">Hola de nuevo</h1>
@@ -67,7 +67,7 @@ export default function Login() {
             />
           </div>
           <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
-            {loading ? 'Entrando...' : 'Entrar a PitWall'}
+            {loading ? 'Entrando...' : 'Entrar a F1 Social App'}
           </button>
         </form>
 

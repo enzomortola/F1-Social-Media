@@ -22,7 +22,7 @@ export default function Navbar() {
       <div className="nav-inner">
         <Link to="/" className="logo">
           <span className="logo-icon">⬡</span>
-          <span className="logo-text">PitWall</span>
+          <span className="logo-text">F1 Social App</span>
         </Link>
 
         <div className={`nav-links${menuOpen ? ' open' : ''}`}>

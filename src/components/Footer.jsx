@@ -9,11 +9,10 @@ export default function Footer() {
           <div className="footer-brand">
             <Link to="/" className="logo">
               <span className="logo-icon">⬡</span>
-              <span className="logo-text">PitWall</span>
+              <span className="logo-text">F1 Social App</span>
             </Link>
             <p className="footer-desc">
-              La comunidad de fanáticos de F1 para calificar grandes premios,
-              pilotos y temporadas. Compartí tus opiniones con otros fanáticos.
+              La comunidad abierta de fanáticos de F1. Calificá, opiná y conectá con otros apasionados del automovilismo.
             </p>
           </div>
           <div className="footer-links">
@@ -33,7 +32,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="footer-bottom">
-          <p>© 2025 PitWall — Datos por{' '}
+          <p>© 2026 F1 Social App — Open Source Project — Datos por{' '}
             <a href="https://api.jolpi.ca" target="_blank" rel="noopener">Jolpica F1 API</a>.
             No afiliado a la FIA o Formula One Group.
           </p>

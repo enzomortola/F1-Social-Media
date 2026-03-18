@@ -24,7 +24,7 @@ export default function Reviews() {
       <div className="page-header">
         <div className="container">
           <h1 className="page-title gradient-text orbitron">Reviews</h1>
-          <p className="page-subtitle">Las últimas opiniones de la comunidad de PitWall</p>
+          <p className="page-subtitle">Las últimas opiniones de la comunidad de F1 Social App</p>
         </div>
       </div>
 
@@ -45,7 +45,7 @@ export default function Reviews() {
 
         {loading ? (
           <div className="reviews-feed">
-            {Array(6).fill(0).map((_,i) => <div key={i} className="skeleton skeleton-review" />)}
+            {Array(6).fill(0).map((_, i) => <div key={i} className="skeleton skeleton-review" />)}
           </div>
         ) : reviews.length === 0 ? (
           <div className="empty-state">
@@ -63,7 +63,7 @@ export default function Reviews() {
           <div style={{ marginTop: 40, textAlign: 'center', padding: '40px 20px', background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)' }}>
             <h3 style={{ marginBottom: 12 }}>¿Tenés algo para decir?</h3>
             <p style={{ color: 'var(--text-secondary)', marginBottom: 20 }}>
-              Unite a PitWall para empezar a calificar carreras y pilotos de F1.
+              Unite a F1 Social App para empezar a calificar carreras y pilotos de F1.
             </p>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
               <Link to="/register" className="btn btn-primary">Crear cuenta</Link>
