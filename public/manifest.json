@@ -1,0 +1,18 @@
+{
+  "short_name": "F1 Social",
+  "name": "F1 Social App",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#e8002d",
+  "background_color": "#0a0a0a",
+  "orientation": "portrait",
+  "description": "Tu comunidad de F1 en tiempo real. Reviews, estadísticas y más."
+}
