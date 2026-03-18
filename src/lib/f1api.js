@@ -77,10 +77,9 @@ export async function getDriverWikiInfo(wikipediaUrl) {
   try {
     const title = decodeURIComponent(wikipediaUrl.split('/wiki/')[1]);
     
-    // API REST de Wikipedia (mucho más rápida y trae texto formateado + imágenes)
+    // API REST de Wikipedia
     let res = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
     
-    // Fallback a inglés si no hay artículo en español con exactamente ese título localmente
     if (!res.ok) {
       res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
     }
@@ -89,6 +88,28 @@ export async function getDriverWikiInfo(wikipediaUrl) {
     const data = await res.json();
     return {
       description: data.extract,
+      image: data.originalimage?.source || data.thumbnail?.source || null
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Obtener mapa e info del circuito desde Wikipedia
+export async function getCircuitWikiInfo(wikipediaUrl) {
+  if (!wikipediaUrl) return null;
+  try {
+    const title = decodeURIComponent(wikipediaUrl.split('/wiki/')[1]);
+    
+    // API REST de Wikipedia
+    let res = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
+    if (!res.ok) {
+      res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
+    }
+    
+    if (!res.ok) return null;
+    const data = await res.json();
+    return {
       image: data.originalimage?.source || data.thumbnail?.source || null
     };
   } catch {

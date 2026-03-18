@@ -91,3 +91,39 @@ export function getRatingLabel(rating) {
   if (rating >= 2) return '👎 Regular';
   return '💀 Pésima';
 }
+export function getCircuitMap(circuitId) {
+  // f1db tiene una estructura: /images/circuits/{id}/map.svg
+  const baseUrl = 'https://raw.githubusercontent.com/f1db/f1db-images/main/images/circuits/';
+  
+  // Mapeo manual para IDs de Ergast que difieren en f1db
+  const MANUAL_MAPS = {
+    'albert_park': 'albert-park',
+    'bahrain': 'bahrain',
+    'jeddah': 'jeddah',
+    'yas_marina': 'yas-marina',
+    'interlagos': 'interlagos',
+    'monaco': 'monaco',
+    'catalunya': 'barcelona-catalunya',
+    'silverstone': 'silverstone',
+    'spa': 'spa-francorchamps',
+    'monza': 'monza',
+    'zandvoort': 'zandvoort',
+    'baku': 'baku',
+    'marina_bay': 'marina-bay',
+    'suzuka': 'suzuka',
+    'americas': 'americas',
+    'rodriguez': 'hermanos-rodriguez',
+    'vegas': 'las-vegas',
+    'miami': 'miami',
+    'imola': 'imola',
+    'shanghai': 'shanghai',
+    'hungaroring': 'hungaroring',
+    'red_bull_ring': 'red-bull-ring',
+    'losail': 'losail',
+    'villeneuve': 'gilles-villeneuve',
+    'galvez': 'buenos-aires',
+  };
+
+  const id = MANUAL_MAPS[circuitId] || circuitId.replace(/_/g, '-');
+  return `${baseUrl}${id}/map.svg`;
+}

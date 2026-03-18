@@ -40,6 +40,6 @@ Esta es una plataforma de **código abierto (Open Source)** creada por y para fa
 
 ## 📜 Licencia
 
-Este proyecto es de código abierto y está disponible bajo la licencia MIT. ¡Compartilo y mejoralo!
+Este proyecto es de código abierto y está disponible. ¡Compartilo y mejoralo!
 
 *Desarrollado con pasión por la comunidad de F1.*
