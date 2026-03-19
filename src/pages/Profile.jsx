@@ -284,13 +284,19 @@ export default function Profile() {
               </div>
             </div>
 
-            <div>
               {isOwner && !isEditing && (
-                <button className="btn btn-secondary" style={{ padding: '12px 24px', fontSize: '1rem' }} onClick={() => setIsEditing(true)}>
-                  ⚙️ Editar Perfil
-                </button>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <button className="btn btn-secondary" style={{ padding: '12px 24px', fontSize: '1rem' }} onClick={() => {
+                    navigator.clipboard.writeText(window.location.origin + `/profile/${user.uid}`);
+                    toast('¡Enlace de perfil copiado!', 'success');
+                  }}>
+                    🔗 Compartir
+                  </button>
+                  <button className="btn btn-primary" style={{ padding: '12px 24px', fontSize: '1rem' }} onClick={() => setIsEditing(true)}>
+                    ⚙️ Editar
+                  </button>
+                </div>
               )}
-            </div>
           </div>
 
           <div style={{ maxWidth: 900 }}>

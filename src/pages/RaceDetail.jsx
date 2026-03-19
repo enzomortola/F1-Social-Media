@@ -2,8 +2,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { getRaceResults, getCircuitWikiInfo, getQualifyingResults, getSprintResults, getPitStops } from '../lib/f1api';
+import { getRaceResults, getCircuitWikiInfo, getQualifyingResults, getSprintResults, getPitStops, getRaceLaps } from '../lib/f1api';
 import { onReviewsSnapshot, getItemStats, toggleWatchlist, getWatchlist } from '../lib/firestore';
+import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { useAuth } from '../context/AuthContext';
 import ReviewCard from '../components/ReviewCard';
 import ReviewModal from '../components/ReviewModal';
@@ -25,6 +26,7 @@ export default function RaceDetail() {
   const [showMap, setShowMap] = useState(false);
   const [selectedDriverToRate, setSelectedDriverToRate] = useState(null);
   const [sortConfig, setSortConfig] = useState(null);
+  const [visibleDrivers, setVisibleDrivers] = useState({});
 
   const { data: race, isLoading } = useQuery({
     queryKey: ['race', year, round],
@@ -48,6 +50,12 @@ export default function RaceDetail() {
   const { data: pitstops = [] } = useQuery({
     queryKey: ['pitstops', year, round],
     queryFn: () => getPitStops(year, round),
+    enabled: isPast,
+  });
+
+  const { data: laps = [] } = useQuery({
+    queryKey: ['laps', year, round],
+    queryFn: () => getRaceLaps(year, round),
     enabled: isPast,
   });
 
@@ -333,6 +341,12 @@ export default function RaceDetail() {
           {isPast && pitstops.length > 0 && (
             <button className={`tab-btn${tab === 'pitstops' ? ' active' : ''}`} onClick={() => { setTab('pitstops'); setSortConfig(null); }}>
               🔧 Pit Stops
+            </button>
+          )}
+
+          {isPast && laps.length > 0 && (
+            <button className={`tab-btn${tab === 'laps' ? ' active' : ''}`} onClick={() => { setTab('laps'); setSortConfig(null); }}>
+              📈 Ritmo Vuelta a Vuelta
             </button>
           )}
 
@@ -636,6 +650,107 @@ export default function RaceDetail() {
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {tab === 'laps' && laps.length > 0 && (
+          <div style={{ background: 'var(--bg-card)', padding: '24px 0', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', marginTop: 16 }}>
+            <h3 style={{ marginLeft: 24, marginBottom: 6 }}>Ritmo de Carrera</h3>
+            <p style={{ marginLeft: 24, marginBottom: 20, color: 'var(--text-muted)', fontSize: '0.9rem' }}>Seleccioná los pilotos que querés comparar (apagados por defecto para mayor claridad visual).</p>
+            
+            <div style={{ padding: '0 24px', marginBottom: 24, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {(race?.Results || []).map((r, i) => {
+                const driverKey = r.Driver.familyName;
+                const isVisible = visibleDrivers[driverKey];
+                const teamColor = getTeamColor(r.Constructor.constructorId) || `hsl(${i * 18}, 70%, 50%)`;
+                return (
+                  <label 
+                    key={driverKey} 
+                    style={{ 
+                      display: 'flex', alignItems: 'center', gap: 6, 
+                      background: isVisible ? `${teamColor}20` : 'var(--bg-card2)', 
+                      padding: '6px 14px', borderRadius: '20px', 
+                      cursor: 'pointer', border: `1px solid ${isVisible ? teamColor : 'var(--border)'}`,
+                      fontSize: '0.8rem', color: isVisible ? '#fff' : 'var(--text-muted)',
+                      transition: 'all 0.2s ease', userSelect: 'none'
+                    }}
+                  >
+                    <input 
+                      type="checkbox" 
+                      checked={!!isVisible} 
+                      onChange={(e) => {
+                        setVisibleDrivers(prev => ({ ...prev, [driverKey]: e.target.checked }));
+                      }} 
+                      style={{ display: 'none' }}
+                    />
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: teamColor, opacity: isVisible ? 1 : 0.4 }}></span>
+                    {r.Driver.givenName.charAt(0)}. {r.Driver.familyName}
+                  </label>
+                );
+              })}
+            </div>
+
+            <div style={{ width: '100%', height: 450 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={laps.map(lap => {
+                    const dataPoint = { name: `V${lap.number}` };
+                    const allDrivers = race?.Results || [];
+                    allDrivers.forEach((r) => {
+                      const timing = lap.Timings?.find(t => t.driverId === r.Driver.driverId);
+                      if (timing) {
+                        const parts = timing.time.split(':');
+                        if (parts.length === 2) {
+                          dataPoint[r.Driver.familyName] = parseFloat(parts[0])*60 + parseFloat(parts[1]);
+                        } else {
+                          dataPoint[r.Driver.familyName] = parseFloat(parts[0]);
+                        }
+                      }
+                    });
+                    return dataPoint;
+                  })}
+                  margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#222" vertical={false} />
+                  <XAxis dataKey="name" stroke="#666" tick={{fontSize: 12}} minTickGap={20} />
+                  <YAxis 
+                    stroke="#666" 
+                    domain={['dataMin - 1', 'dataMax + 1']} 
+                    tickFormatter={(tick) => {
+                       const mins = Math.floor(tick / 60);
+                       const secs = (tick % 60).toFixed(0);
+                       return `${mins}:${secs.padStart(2, '0')}`;
+                    }} 
+                    tick={{fontSize: 12}} 
+                  />
+                  <RechartsTooltip 
+                    contentStyle={{ background: '#111', border: '1px solid #333', borderRadius: 8 }}
+                    formatter={(value, name) => {
+                      if (!value) return null;
+                      const mins = Math.floor(value / 60);
+                      const secs = (value % 60).toFixed(3);
+                      return [`${mins}:${secs.padStart(6, '0')}`, name];
+                    }}
+                    labelStyle={{ color: 'var(--gold)', marginBottom: 4 }}
+                  />
+                  {(race?.Results || []).map((r, i) => {
+                    if (!visibleDrivers[r.Driver.familyName]) return null;
+                    return (
+                      <Line 
+                        key={r.Driver.driverId}
+                        type="monotone" 
+                        dataKey={r.Driver.familyName} 
+                        name={`${r.Driver.givenName} ${r.Driver.familyName}`}
+                        stroke={getTeamColor(r.Constructor.constructorId) || `hsl(${i * 18}, 70%, 50%)`} 
+                        dot={false}
+                        strokeWidth={2}
+                        activeDot={{ r: 6 }} 
+                      />
+                    );
+                  })}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         )}
 

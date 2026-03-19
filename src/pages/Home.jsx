@@ -2,11 +2,11 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { getCurrentSchedule, getDriversBySeason } from '../lib/f1api';
+import { getCurrentSchedule, getDriversBySeason, getDriverStandings, getConstructorStandings } from '../lib/f1api';
 import { onReviewsSnapshot, getGlobalStats, getItemStats } from '../lib/firestore';
 import ReviewCard from '../components/ReviewCard';
 import { StarDisplay } from '../components/StarRating';
-import { TEAM_COLORS, getCountryFlag } from '../utils/f1helpers';
+import { TEAM_COLORS, getCountryFlag, getTeamColor } from '../utils/f1helpers';
 import { useAuth } from '../context/AuthContext';
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -38,6 +38,16 @@ export default function Home() {
   const { data: drivers = [], isLoading: driversLoading } = useQuery({
     queryKey: ['drivers', CURRENT_YEAR],
     queryFn: () => getDriversBySeason(CURRENT_YEAR),
+  });
+
+  const { data: driverStandings = [], isLoading: dStandingsLoading } = useQuery({
+    queryKey: ['driverStandings', CURRENT_YEAR],
+    queryFn: () => getDriverStandings(CURRENT_YEAR),
+  });
+
+  const { data: constructorStandings = [], isLoading: cStandingsLoading } = useQuery({
+    queryKey: ['constructorStandings', CURRENT_YEAR],
+    queryFn: () => getConstructorStandings(CURRENT_YEAR),
   });
 
   // Stats por carrera
@@ -140,6 +150,90 @@ export default function Home() {
                 );
               })
             )}
+          </div>
+        </div>
+      </section>
+
+      {/* CAMPEONATOS MUNDIALES */}
+      <section className="section" style={{ background: 'var(--bg-card)' }}>
+        <div className="container">
+          <div className="section-header">
+            <h2 className="section-title">Campeonatos Mundiales {CURRENT_YEAR}</h2>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 32 }}>
+            {/* Driver Standings */}
+            <div>
+              <h3 style={{ marginBottom: 16 }}>Pilotos (Top 10)</h3>
+              {dStandingsLoading ? (
+                <div className="skeleton skeleton-race" style={{ height: 300 }}></div>
+              ) : driverStandings.length === 0 ? (
+                <p style={{ color: 'var(--text-muted)' }}>El campeonato no ha puntuado aún.</p>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="results-table">
+                    <thead>
+                      <tr><th>Pos</th><th>Piloto</th><th>Pts</th><th>Victorias</th></tr>
+                    </thead>
+                    <tbody>
+                      {driverStandings.slice(0, 10).map((r, i) => {
+                        const teamColor = getTeamColor(r.Constructors?.[0]?.constructorId);
+                        const pos = parseInt(r.position);
+                        return (
+                          <tr key={i}>
+                            <td><div className={`position-badge ${pos===1?'pos-1':pos===2?'pos-2':pos===3?'pos-3':'pos-other'}`}>{r.position}</div></td>
+                            <td>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} onClick={() => navigate(`/drivers/${r.Driver?.driverId}`)}>
+                                <div style={{ width: 3, height: 28, background: teamColor, borderRadius: 2 }}></div>
+                                <div style={{ fontWeight: 600 }}>{r.Driver?.givenName} {r.Driver?.familyName}</div>
+                              </div>
+                            </td>
+                            <td style={{ fontWeight: 700, color: 'var(--gold)' }}>{r.points}</td>
+                            <td>{r.wins}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Constructor Standings */}
+            <div>
+              <h3 style={{ marginBottom: 16 }}>Constructores</h3>
+              {cStandingsLoading ? (
+                <div className="skeleton skeleton-race" style={{ height: 300 }}></div>
+              ) : constructorStandings.length === 0 ? (
+                <p style={{ color: 'var(--text-muted)' }}>El campeonato no ha puntuado aún.</p>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="results-table">
+                    <thead>
+                      <tr><th>Pos</th><th>Escudería</th><th>Pts</th><th>Victorias</th></tr>
+                    </thead>
+                    <tbody>
+                      {constructorStandings.slice(0, 5).map((r, i) => {
+                        const teamColor = getTeamColor(r.Constructor?.constructorId);
+                        const pos = parseInt(r.position);
+                        return (
+                          <tr key={i}>
+                            <td><div className={`position-badge ${pos===1?'pos-1':pos===2?'pos-2':pos===3?'pos-3':'pos-other'}`}>{r.position}</div></td>
+                            <td>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <div style={{ width: 3, height: 28, background: teamColor, borderRadius: 2 }}></div>
+                                <div style={{ fontWeight: 600 }}>{r.Constructor?.name}</div>
+                              </div>
+                            </td>
+                            <td style={{ fontWeight: 700, color: 'var(--gold)' }}>{r.points}</td>
+                            <td>{r.wins}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>

@@ -44,7 +44,7 @@ export default function Navbar() {
           {user ? (
             <div className="user-menu">
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <Link to="/profile" className="user-avatar-btn">
+                <Link to={`/profile/${user.uid}`} className="user-avatar-btn">
                   <div className="avatar">
                     {profile?.photoURL
                       ? <img src={profile.photoURL} alt={initials} />

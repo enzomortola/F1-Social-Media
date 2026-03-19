@@ -60,6 +60,63 @@ export async function getPitStops(year, round) {
   }
 }
 
+export async function getRaceLaps(year, round) {
+  try {
+    const limit = 100;
+    const firstData = await fetchF1(`/${year}/${round}/laps`, { limit, offset: 0 });
+    const total = parseInt(firstData.MRData.total) || 0;
+    
+    let allLapsArrays = firstData.MRData.RaceTable.Races[0]?.Laps || [];
+    
+    // Fetch sequencialmente para evitar que la API Jolpica (o el navegador) 
+    // rechace peticiones por Rate Limiting (429) o max concurrent requests.
+    for (let offset = limit; offset < total; offset += limit) {
+      try {
+        const res = await fetchF1(`/${year}/${round}/laps`, { limit, offset });
+        if (res) {
+          const laps = res.MRData.RaceTable.Races[0]?.Laps || [];
+          allLapsArrays = allLapsArrays.concat(laps);
+        }
+      } catch (e) {
+        console.warn(`Laps offset ${offset} failed`, e);
+      }
+    }
+    
+    // La API puede haber cortado una misma vuelta entre dos páginas,
+    // por lo que agrupamos todos los "Timings" basados en el lap.number
+    const lapMap = {};
+    for (const lapObj of allLapsArrays) {
+      if (!lapMap[lapObj.number]) {
+        lapMap[lapObj.number] = { number: lapObj.number, Timings: [] };
+      }
+      lapMap[lapObj.number].Timings.push(...(lapObj.Timings || []));
+    }
+    
+    return Object.values(lapMap).sort((a, b) => parseInt(a.number) - parseInt(b.number));
+  } catch (err) {
+    console.warn("Laps error:", err);
+    return [];
+  }
+}
+
+export async function getDriverStandings(year) {
+  try {
+    const data = await fetchF1(`/${year}/driverStandings`, { limit: 100 });
+    return data.MRData.StandingsTable.StandingsLists[0]?.DriverStandings || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function getConstructorStandings(year) {
+  try {
+    const data = await fetchF1(`/${year}/constructorStandings`, { limit: 100 });
+    return data.MRData.StandingsTable.StandingsLists[0]?.ConstructorStandings || [];
+  } catch {
+    return [];
+  }
+}
+
 // Pilotos de una temporada
 export async function getDriversBySeason(year) {
   const data = await fetchF1(`/${year}/drivers`, { limit: 100 });
@@ -70,18 +127,6 @@ export async function getDriversBySeason(year) {
 export async function getDriver(driverId) {
   const data = await fetchF1(`/drivers/${driverId}`);
   return data.MRData.DriverTable.Drivers[0];
-}
-
-// Standings de pilotos (campeonato)
-export async function getDriverStandings(year) {
-  const data = await fetchF1(`/${year}/driverStandings`, { limit: 30 });
-  return data.MRData.StandingsTable.StandingsLists[0]?.DriverStandings || [];
-}
-
-// Standings de constructores
-export async function getConstructorStandings(year) {
-  const data = await fetchF1(`/${year}/constructorStandings`, { limit: 15 });
-  return data.MRData.StandingsTable.StandingsLists[0]?.ConstructorStandings || [];
 }
 
 // Próximas carreras (temporada corriente)
