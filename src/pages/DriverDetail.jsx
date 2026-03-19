@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import ReviewCard from '../components/ReviewCard';
 import ReviewModal from '../components/ReviewModal';
 import { StarDisplay } from '../components/StarRating';
-import { getDriverFlag, getTeamColor, getRatingLabel, SEASONS_LIST } from '../utils/f1helpers';
+import { getDriverFlag, getDriverCountryCode, getFlagUrl, getTeamColor, getRatingLabel, SEASONS_LIST } from '../utils/f1helpers';
 import { toast } from '../components/ToastContainer';
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -117,7 +117,18 @@ export default function DriverDetail() {
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                <span style={{ fontSize: '1.5rem' }}>{getDriverFlag(driver?.nationality)}</span>
+                {getFlagUrl(getDriverCountryCode(driver?.nationality)) ? (
+                  <img 
+                    src={getFlagUrl(getDriverCountryCode(driver?.nationality))} 
+                    alt={driver?.nationality} 
+                    title={driver?.nationality} 
+                    style={{ width: 26, borderRadius: 2, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }} 
+                  />
+                ) : (
+                  <span style={{ fontSize: '1.5rem' }} title={driver?.nationality}>
+                    {getDriverFlag(driver?.nationality)}
+                  </span>
+                )}
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{driver?.nationality}</span>
               </div>
               <h1 style={{ marginBottom: 8 }}>{driverName}</h1>

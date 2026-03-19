@@ -5,12 +5,16 @@ import { useQuery } from '@tanstack/react-query';
 import { getRacesBySeason } from '../lib/f1api';
 import { getCountryFlag } from '../utils/f1helpers';
 import { SEASONS_LIST } from '../utils/f1helpers';
+import { useAuth } from '../context/AuthContext';
 
 const CURRENT_YEAR = new Date().getFullYear();
 
 export default function Races() {
   const [year, setYear] = useState(CURRENT_YEAR);
   const navigate = useNavigate();
+  const { profile } = useAuth();
+  
+  const userTimeZone = profile?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   const { data: races = [], isLoading } = useQuery({
     queryKey: ['races', year],
@@ -63,6 +67,7 @@ export default function Races() {
                       key={race.round}
                       race={race}
                       isUpcoming
+                      userTimeZone={userTimeZone}
                       onClick={() => navigate(`/races/${race.season}/${race.round}`)}
                     />
                   ))}
@@ -79,6 +84,7 @@ export default function Races() {
                     <RaceCard
                       key={race.round}
                       race={race}
+                      userTimeZone={userTimeZone}
                       onClick={() => navigate(`/races/${race.season}/${race.round}`)}
                     />
                   ))}
@@ -99,7 +105,9 @@ export default function Races() {
   );
 }
 
-function RaceCard({ race, isUpcoming, onClick }) {
+function RaceCard({ race, isUpcoming, userTimeZone, onClick }) {
+  const raceDateTimeStr = race?.date && race?.time ? `${race.date}T${race.time}` : null;
+
   return (
     <div className="race-card" onClick={onClick} style={isUpcoming ? { opacity: 0.75 } : {}}>
       <div className="race-card-header">
@@ -117,7 +125,11 @@ function RaceCard({ race, isUpcoming, onClick }) {
       </div>
       <div className="race-card-body">
         <div className="race-date">
-          📅 {new Date(race.date + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'long' })}
+          {raceDateTimeStr ? (
+            <>📅 {new Date(raceDateTimeStr).toLocaleString('es-AR', { weekday: 'short', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: userTimeZone })} hs</>
+          ) : (
+            <>📅 {new Date(race.date + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'long' })}</>
+          )}
         </div>
         <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
           📍 {race.Circuit?.Location?.locality}, {race.Circuit?.Location?.country}

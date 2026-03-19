@@ -1,10 +1,10 @@
-// src/pages/Profile.jsx
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getUserProfile, updateUserProfile, createUserProfile, getReviews, getWatchlist } from '../lib/firestore';
 import ReviewCard from '../components/ReviewCard';
 import { toast } from '../components/ToastContainer';
+import { getCountryCode, getFlagUrl } from '../utils/f1helpers';
 
 export default function Profile() {
   const { userId } = useParams();
@@ -24,6 +24,31 @@ export default function Profile() {
   const [bio, setBio] = useState('');
   const [favTeam, setFavTeam] = useState('');
   const [favDriver, setFavDriver] = useState('');
+  const [country, setCountry] = useState('');
+
+  const COUNTRY_TIMEZONES = {
+    'Argentina': 'America/Argentina/Buenos_Aires',
+    'Bolivia': 'America/La_Paz',
+    'Chile': 'America/Santiago',
+    'Colombia': 'America/Bogota',
+    'Costa Rica': 'America/Costa_Rica',
+    'Ecuador': 'America/Guayaquil',
+    'El Salvador': 'America/El_Salvador',
+    'España': 'Europe/Madrid',
+    'Estados Unidos (Este)': 'America/New_York',
+    'Estados Unidos (Pacífico)': 'America/Los_Angeles',
+    'Guatemala': 'America/Guatemala',
+    'Honduras': 'America/Tegucigalpa',
+    'México': 'America/Mexico_City',
+    'Nicaragua': 'America/Managua',
+    'Panamá': 'America/Panama',
+    'Paraguay': 'America/Asuncion',
+    'Perú': 'America/Lima',
+    'Puerto Rico': 'America/Puerto_Rico',
+    'República Dominicana': 'America/Santo_Domingo',
+    'Uruguay': 'America/Montevideo',
+    'Venezuela': 'America/Caracas'
+  };
 
   useEffect(() => {
     if (!targetId) { setLoading(false); return; }
@@ -62,6 +87,7 @@ export default function Profile() {
           setBio(p.bio || '');
           setFavTeam(p.favoriteTeam || '');
           setFavDriver(p.favoriteDriver || '');
+          setCountry(p.country || '');
         }
       }
       setReviews(r);
@@ -81,6 +107,8 @@ export default function Profile() {
         bio: bio || '',
         favoriteTeam: favTeam || '',
         favoriteDriver: favDriver || '',
+        country: country || '',
+        timezone: country ? COUNTRY_TIMEZONES[country] : Intl.DateTimeFormat().resolvedOptions().timeZone,
       };
       // Por si el usuario no tenía el documento principal, le añadimos datos básicos provenientes de Auth
       if (user.displayName) dataToSave.displayName = user.displayName;
@@ -176,7 +204,7 @@ export default function Profile() {
   const getDriverImageUrl = (driver) => {
     if (!driver) return null;
     const n = driver.toLowerCase();
-    if (n.includes('colapinto')) return 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d9/Franco_Colapinto_-_2024_British_Grand_Prix_%28cropped%29.jpg/640px-Franco_Colapinto_-_2024_British_Grand_Prix_%28cropped%29.jpg';
+    if (n.includes('colapinto')) return 'https://upload.wikimedia.org/wikipedia/commons/2/2f/Franco_Colapinto_2024_Austria_%28cropped%29.jpg';
     if (n.includes('verstappen')) return 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png';
     if (n.includes('hamilton')) return 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LEWHAM01_Lewis_Hamilton/lewham01.png';
     if (n.includes('leclerc')) return 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/C/CHALEC01_Charles_Leclerc/chalec01.png';
@@ -192,6 +220,17 @@ export default function Profile() {
     if (n.includes('gasly')) return 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/P/PIEGAS01_Pierre_Gasly/piegas01.png';
     if (n.includes('stroll')) return 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LANSTR01_Lance_Stroll/lanstr01.png';
     if (n.includes('hulkenberg')) return 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/N/NICHUL01_Nico_Hulkenberg/nichul01.png';
+    if (n.includes('perez')) return 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/S/SERPER01_Sergio_Perez/serper01.png';
+    if (n.includes('bottas')) return 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/V/VALBOT01_Valtteri_Bottas/valbot01.png';
+    if (n.includes('zhou')) return 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/G/GUAZHO01_Guanyu_Zhou/guazho01.png';
+    if (n.includes('magnussen')) return 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/K/KEVMAG01_Kevin_Magnussen/kevmag01.png';
+    if (n.includes('ricciardo')) return 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/D/DANRIC01_Daniel_Ricciardo/danric01.png';
+    if (n.includes('sargeant')) return 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LOGSAR01_Logan_Sargeant/logsar01.png';
+    
+    // F2 y Academy
+    if (n.includes('lindblad')) return 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Arvid_Lindblad_%282024%2C_cropped%29.jpg/640px-Arvid_Lindblad_%282024%2C_cropped%29.jpg';
+    if (n.includes('hadjar')) return 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Isack_Hadjar_%282024_Formula_2_championship%29.jpg/640px-Isack_Hadjar_%282024_Formula_2_championship%29.jpg';
+    
     return null;
   };
 
@@ -221,7 +260,17 @@ export default function Profile() {
               </div>
               
               <div style={{ paddingBottom: 10 }}>
-                <h1 className="profile-name orbitron">{profile.displayName}</h1>
+                <h1 className="profile-name orbitron">
+                  {profile.displayName}
+                  {profile.country && getCountryCode(profile.country) && (
+                    <img 
+                      src={getFlagUrl(getCountryCode(profile.country))} 
+                      alt={profile.country}
+                      title={profile.country}
+                      style={{ marginLeft: 16, height: 24, verticalAlign: 'baseline', borderRadius: 2, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}
+                    />
+                  )}
+                </h1>
                 <div className="profile-stats">
                   <div className="profile-stat" style={{ textAlign: 'left' }}>
                     <span className="profile-stat-num">{reviews.length}</span>
@@ -311,29 +360,39 @@ export default function Profile() {
                     <label className="label">Piloto Favorito</label>
                     <select className="select" value={favDriver} onChange={e => setFavDriver(e.target.value)}>
                       <option value="">Seleccioná un piloto...</option>
-                      <option value="Franco Colapinto">Franco Colapinto</option>
-                      <option value="Max Verstappen">Max Verstappen</option>
-                      <option value="Lando Norris">Lando Norris</option>
-                      <option value="Charles Leclerc">Charles Leclerc</option>
-                      <option value="Oscar Piastri">Oscar Piastri</option>
-                      <option value="Carlos Sainz">Carlos Sainz</option>
-                      <option value="Lewis Hamilton">Lewis Hamilton</option>
-                      <option value="George Russell">George Russell</option>
-                      <option value="Fernando Alonso">Fernando Alonso</option>
-                      <option value="Sergio Perez">Sergio Perez</option>
                       <option value="Alexander Albon">Alexander Albon</option>
-                      <option value="Yuki Tsunoda">Yuki Tsunoda</option>
-                      <option value="Liam Lawson">Liam Lawson</option>
+                      <option value="Andrea Kimi Antonelli">Andrea Kimi Antonelli</option>
+                      <option value="Arvid Lindblad">Arvid Lindblad</option>
+                      <option value="Carlos Sainz">Carlos Sainz</option>
+                      <option value="Charles Leclerc">Charles Leclerc</option>
+                      <option value="Daniel Ricciardo">Daniel Ricciardo</option>
                       <option value="Esteban Ocon">Esteban Ocon</option>
-                      <option value="Pierre Gasly">Pierre Gasly</option>
-                      <option value="Nico Hulkenberg">Nico Hulkenberg</option>
-                      <option value="Lance Stroll">Lance Stroll</option>
-                      <option value="Valtteri Bottas">Valtteri Bottas</option>
-                      <option value="Zhou Guanyu">Zhou Guanyu</option>
-                      <option value="Oliver Bearman">Oliver Bearman</option>
-                      <option value="Jack Doohan">Jack Doohan</option>
+                      <option value="Felipe Drugovich">Felipe Drugovich</option>
+                      <option value="Fernando Alonso">Fernando Alonso</option>
+                      <option value="Franco Colapinto">Franco Colapinto</option>
                       <option value="Gabriel Bortoleto">Gabriel Bortoleto</option>
-                      <option value="Kimi Antonelli">Kimi Antonelli</option>
+                      <option value="George Russell">George Russell</option>
+                      <option value="Isack Hadjar">Isack Hadjar</option>
+                      <option value="Jack Doohan">Jack Doohan</option>
+                      <option value="Kevin Magnussen">Kevin Magnussen</option>
+                      <option value="Lance Stroll">Lance Stroll</option>
+                      <option value="Lando Norris">Lando Norris</option>
+                      <option value="Lewis Hamilton">Lewis Hamilton</option>
+                      <option value="Liam Lawson">Liam Lawson</option>
+                      <option value="Logan Sargeant">Logan Sargeant</option>
+                      <option value="Max Verstappen">Max Verstappen</option>
+                      <option value="Mick Schumacher">Mick Schumacher</option>
+                      <option value="Nico Hulkenberg">Nico Hulkenberg</option>
+                      <option value="Oliver Bearman">Oliver Bearman</option>
+                      <option value="Oscar Piastri">Oscar Piastri</option>
+                      <option value="Paul Aron">Paul Aron</option>
+                      <option value="Pierre Gasly">Pierre Gasly</option>
+                      <option value="Sergio Perez">Sergio Perez</option>
+                      <option value="Theo Pourchaire">Theo Pourchaire</option>
+                      <option value="Valtteri Bottas">Valtteri Bottas</option>
+                      <option value="Yuki Tsunoda">Yuki Tsunoda</option>
+                      <option value="Zane Maloney">Zane Maloney</option>
+                      <option value="Zhou Guanyu">Zhou Guanyu</option>
                     </select>
                   </div>
                   <div className="form-group">
@@ -351,6 +410,15 @@ export default function Profile() {
                       <option value="Audi">Audi F1 Team</option>
                       <option value="Visa Cash App RB">Visa Cash App RB</option>
                       <option value="Cadillac">Cadillac F1 Team</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="label">País de Residencia</label>
+                    <select className="select" value={country} onChange={e => setCountry(e.target.value)}>
+                      <option value="">Selecciona tu país (Calcula tu hora local)...</option>
+                      {Object.keys(COUNTRY_TIMEZONES).map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
                     </select>
                   </div>
                 </div>

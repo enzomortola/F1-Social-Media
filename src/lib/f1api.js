@@ -23,10 +23,41 @@ export async function getRacesBySeason(year) {
   return data.MRData.RaceTable.Races;
 }
 
-// Resultados de una carrera específica
 export async function getRaceResults(year, round) {
   const data = await fetchF1(`/${year}/${round}/results`, { limit: 30 });
-  return data.MRData.RaceTable.Races[0];
+  if (data.MRData.RaceTable.Races.length > 0) {
+    return data.MRData.RaceTable.Races[0];
+  }
+  // Si la carrera aún no ocurrió o no tiene resultados, pedimos la info del evento futuro
+  const futureData = await fetchF1(`/${year}/${round}`);
+  return futureData.MRData.RaceTable.Races[0];
+}
+
+export async function getQualifyingResults(year, round) {
+  try {
+    const data = await fetchF1(`/${year}/${round}/qualifying`, { limit: 40 });
+    return data.MRData.RaceTable.Races[0]?.QualifyingResults || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function getSprintResults(year, round) {
+  try {
+    const data = await fetchF1(`/${year}/${round}/sprint`, { limit: 40 });
+    return data.MRData.RaceTable.Races[0]?.SprintResults || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function getPitStops(year, round) {
+  try {
+    const data = await fetchF1(`/${year}/${round}/pitstops`, { limit: 100 });
+    return data.MRData.RaceTable.Races[0]?.PitStops || [];
+  } catch {
+    return [];
+  }
 }
 
 // Pilotos de una temporada

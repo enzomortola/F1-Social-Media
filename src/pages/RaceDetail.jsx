@@ -2,18 +2,18 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { getRaceResults, getCircuitWikiInfo } from '../lib/f1api';
+import { getRaceResults, getCircuitWikiInfo, getQualifyingResults, getSprintResults, getPitStops } from '../lib/f1api';
 import { onReviewsSnapshot, getItemStats, toggleWatchlist, getWatchlist } from '../lib/firestore';
 import { useAuth } from '../context/AuthContext';
 import ReviewCard from '../components/ReviewCard';
 import ReviewModal from '../components/ReviewModal';
 import { StarDisplay } from '../components/StarRating';
-import { getCountryFlag, getTeamColor, getRatingLabel, getCircuitMap } from '../utils/f1helpers';
+import { getCountryFlag, getCountryCode, getFlagUrl, getTeamColor, getRatingLabel, getCircuitMap } from '../utils/f1helpers';
 import { toast } from '../components/ToastContainer';
 
 export default function RaceDetail() {
   const { year, round } = useParams();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const itemId = `${year}_${round}`;
 
@@ -23,10 +23,32 @@ export default function RaceDetail() {
   const [tab, setTab] = useState('reviews');
   const [inWatchlist, setInWatchlist] = useState(false);
   const [showMap, setShowMap] = useState(false);
+  const [selectedDriverToRate, setSelectedDriverToRate] = useState(null);
+  const [sortConfig, setSortConfig] = useState(null);
 
   const { data: race, isLoading } = useQuery({
     queryKey: ['race', year, round],
     queryFn: () => getRaceResults(year, round),
+  });
+
+  const isPast = race?.date ? new Date(race.date) < new Date() : false;
+
+  const { data: qualifying = [] } = useQuery({
+    queryKey: ['qualifying', year, round],
+    queryFn: () => getQualifyingResults(year, round),
+    enabled: isPast,
+  });
+
+  const { data: sprint = [] } = useQuery({
+    queryKey: ['sprint', year, round],
+    queryFn: () => getSprintResults(year, round),
+    enabled: isPast && race?.Sprint, // Ergast sometimes puts Sprint object flag
+  });
+
+  const { data: pitstops = [] } = useQuery({
+    queryKey: ['pitstops', year, round],
+    queryFn: () => getPitStops(year, round),
+    enabled: isPast,
   });
 
   const { data: wikiMap } = useQuery({
@@ -61,7 +83,86 @@ export default function RaceDetail() {
 
   const raceName = race?.raceName || `Ronda ${round} — ${year}`;
   const country = race?.Circuit?.Location?.country || '';
-  const isPast = race?.date ? new Date(race.date) < new Date() : false;
+
+  const userTimeZone = profile?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const raceDateTimeStr = race?.date && race?.time ? `${race.date}T${race.time}` : null;
+
+  // -- SORTING LOGIC --
+  const requestSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
+    else if (sortConfig && sortConfig.key === key && sortConfig.direction === 'desc') {
+      setSortConfig(null); return;
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortedData = (dataArray) => {
+    if (!sortConfig || !dataArray) return dataArray;
+    return [...dataArray].sort((a, b) => {
+      let aVal, bVal;
+      const key = sortConfig.key;
+
+      if (key === 'pos') {
+        aVal = parseInt(a.position) || parseInt(a.stop) || 999;
+        bVal = parseInt(b.position) || parseInt(b.stop) || 999;
+      } else if (key === 'driver') {
+        aVal = (a.Driver?.familyName || a.driverId || '').toLowerCase();
+        bVal = (b.Driver?.familyName || b.driverId || '').toLowerCase();
+      } else if (key === 'team') {
+        aVal = (a.Constructor?.name || '').toLowerCase();
+        bVal = (b.Constructor?.name || '').toLowerCase();
+      } else if (key === 'time' || key === 'q1' || key === 'q2' || key === 'q3') {
+        let rootA = a.Time?.time || a[key.toUpperCase()] || a.time || a.status || '';
+        let rootB = b.Time?.time || b[key.toUpperCase()] || b.time || b.status || '';
+        
+        const parseTime = (t) => {
+           if (!t || t === '—' || t === '') return 99999999;
+           if (t.includes(':')) {
+             const parts = t.replace(/[^\d:.]/g,'').split(':');
+             if (parts.length === 2) return parseFloat(parts[0])*60 + parseFloat(parts[1]||0);
+           }
+           if (t.match(/^[\d.]+$/)) return parseFloat(t);
+           return 88888888; // Fallback (DNF, +1 Lap)
+        };
+        
+        aVal = parseTime(rootA);
+        bVal = parseTime(rootB);
+        
+        if (aVal === 88888888 && bVal === 88888888) {
+           aVal = rootA; bVal = rootB;
+        }
+      } else if (key === 'pts') {
+        aVal = parseFloat(a.points) || 0;
+        bVal = parseFloat(b.points) || 0;
+      } else if (key === 'duration') {
+        aVal = parseFloat(a.duration) || 0;
+        bVal = parseFloat(b.duration) || 0;
+      } else if (key === 'lap') {
+        aVal = parseInt(a.lap) || 0;
+        bVal = parseInt(b.lap) || 0;
+      }
+
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  };
+
+  const renderSortHeader = (key, label, extraStyle = {}) => {
+    const isActive = sortConfig?.key === key;
+    return (
+      <th onClick={() => requestSort(key)} className="sortable-th" style={{ cursor: 'pointer', userSelect: 'none', ...extraStyle }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: isActive ? '#fff' : 'inherit' }}>
+          {label}
+          <span style={{ fontSize: '0.65em', opacity: isActive ? 1 : 0.3, color: isActive ? 'var(--gold)' : 'inherit' }}>
+            {isActive ? (sortConfig.direction === 'asc' ? '▲' : '▼') : '↕'}
+          </span>
+        </div>
+      </th>
+    );
+  };
+  // -------------------
 
   if (isLoading) return <div className="page-wrapper loading-center"><div className="spinner"></div></div>;
 
@@ -71,7 +172,13 @@ export default function RaceDetail() {
         <div className="container">
           <Link to="/races" className="detail-back">← Grandes Premios</Link>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 24, flexWrap: 'wrap' }}>
-            <div style={{ fontSize: '4rem' }}>{getCountryFlag(country)}</div>
+            <div style={{ flexShrink: 0 }}>
+              {getFlagUrl(getCountryCode(country)) ? (
+                <img src={getFlagUrl(getCountryCode(country))} alt={country} title={country} style={{ width: 70, borderRadius: 6, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))' }} />
+              ) : (
+                <span style={{ fontSize: '4rem' }} title={country}>{getCountryFlag(country)}</span>
+              )}
+            </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: '0.8rem', color: 'var(--red)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
                 Ronda {round} · Temporada {year}
@@ -81,11 +188,19 @@ export default function RaceDetail() {
                 {race?.Circuit?.circuitName && (
                   <span className="meta-badge">🏟 {race.Circuit.circuitName}</span>
                 )}
-                {race?.date && (
+                {raceDateTimeStr ? (
+                  <span className="meta-badge">
+                    📅 {new Date(raceDateTimeStr).toLocaleString('es-AR', { 
+                        day: 'numeric', month: 'long', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit',
+                        timeZone: userTimeZone
+                    })} {profile?.timezone ? `(Hora local)` : ''}
+                  </span>
+                ) : race?.date ? (
                   <span className="meta-badge">
                     📅 {new Date(race.date + 'T12:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}
                   </span>
-                )}
+                ) : null}
                 {race?.Circuit?.Location?.locality && (
                   <span className="meta-badge">📍 {race.Circuit.Location.locality}, {country}</span>
                 )}
@@ -156,9 +271,19 @@ export default function RaceDetail() {
 
           <div style={{ display: 'flex', gap: 12, marginTop: 24, flexWrap: 'wrap' }}>
             {user && (
-              <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-                ⭐ Calificar esta carrera
-              </button>
+              <>
+                <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+                  ⭐ Calificar esta carrera
+                </button>
+                {isPast && race?.Results?.length > 0 && (
+                  <button className="btn btn-secondary" onClick={() => {
+                    setTab('results');
+                    setTimeout(() => window.scrollTo({ top: 800, behavior: 'smooth' }), 50);
+                  }}>
+                    🏎️ Calificar pilotos
+                  </button>
+                )}
+              </>
             )}
             <button
               className={`btn ${inWatchlist ? 'btn-secondary' : 'btn-ghost'}`}
@@ -176,16 +301,42 @@ export default function RaceDetail() {
       </div>
 
       <div className="container">
-        <div className="tabs">
-          <button className={`tab-btn${tab === 'reviews' ? ' active' : ''}`} onClick={() => setTab('reviews')}>
+        <div className="tabs" style={{ flexWrap: 'wrap', gap: 8, overflowX: 'auto', whiteSpace: 'nowrap', WebkitOverflowScrolling: 'touch', paddingBottom: 10 }}>
+          <button className={`tab-btn${tab === 'reviews' ? ' active' : ''}`} onClick={() => { setTab('reviews'); setSortConfig(null); }}>
             Reviews ({reviews.length})
           </button>
-          {isPast && race?.Results?.length > 0 && (
-            <button className={`tab-btn${tab === 'results' ? ' active' : ''}`} onClick={() => setTab('results')}>
-              Resultados
+          
+          {!isPast && (race?.FirstPractice || race?.Qualifying) && (
+            <button className={`tab-btn${tab === 'schedule' ? ' active' : ''}`} style={{ borderColor: 'var(--gold)', color: tab==='schedule'?'var(--gold)':'' }} onClick={() => { setTab('schedule'); setSortConfig(null); }}>
+              🕒 Cronograma Exacto
             </button>
           )}
-          <button className={`tab-btn${tab === 'multimedia' ? ' active' : ''}`} onClick={() => setTab('multimedia')}>
+
+          {isPast && race?.Results?.length > 0 && (
+            <button className={`tab-btn${tab === 'results' ? ' active' : ''}`} onClick={() => { setTab('results'); setSortConfig(null); }}>
+              🏁 Resultados
+            </button>
+          )}
+          
+          {isPast && qualifying.length > 0 && (
+            <button className={`tab-btn${tab === 'qualifying' ? ' active' : ''}`} onClick={() => { setTab('qualifying'); setSortConfig(null); }}>
+              ⏱️ Clasificación
+            </button>
+          )}
+
+          {isPast && sprint.length > 0 && (
+            <button className={`tab-btn${tab === 'sprint' ? ' active' : ''}`} onClick={() => { setTab('sprint'); setSortConfig(null); }}>
+              🚀 Sprint
+            </button>
+          )}
+
+          {isPast && pitstops.length > 0 && (
+            <button className={`tab-btn${tab === 'pitstops' ? ' active' : ''}`} onClick={() => { setTab('pitstops'); setSortConfig(null); }}>
+              🔧 Pit Stops
+            </button>
+          )}
+
+          <button className={`tab-btn${tab === 'multimedia' ? ' active' : ''}`} onClick={() => { setTab('multimedia'); setSortConfig(null); }}>
             📺 Multimedia
           </button>
         </div>
@@ -312,15 +463,16 @@ export default function RaceDetail() {
             <table className="results-table">
               <thead>
                 <tr>
-                  <th>Pos</th>
-                  <th>Piloto</th>
-                  <th>Equipo</th>
-                  <th>Tiempo / Estado</th>
-                  <th>Pts</th>
+                  {renderSortHeader('pos', 'Pos')}
+                  {renderSortHeader('driver', 'Piloto')}
+                  {renderSortHeader('team', 'Equipo')}
+                  {renderSortHeader('time', 'Tiempo / Estado')}
+                  {renderSortHeader('pts', 'Pts')}
+                  <th style={{ textAlign: 'center' }}>Votar</th>
                 </tr>
               </thead>
               <tbody>
-                {race.Results.map(r => {
+                {getSortedData(race.Results).map(r => {
                   const pos = parseInt(r.position);
                   const posClass = pos === 1 ? 'pos-1' : pos === 2 ? 'pos-2' : pos === 3 ? 'pos-3' : 'pos-other';
                   const teamColor = getTeamColor(r.Constructor?.constructorId);
@@ -356,11 +508,164 @@ export default function RaceDetail() {
                           {r.points}
                         </span>
                       </td>
+                      <td style={{ textAlign: 'center' }}>
+                        {user && (
+                          <button 
+                            className="btn btn-secondary" 
+                            style={{ padding: '6px 12px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 6, margin: '0 auto' }}
+                            title={`Calificar a ${r.Driver?.givenName}`}
+                            onClick={(e) => {
+                               e.stopPropagation();
+                               setSelectedDriverToRate({
+                                 id: r.Driver?.driverId,
+                                 name: `${r.Driver?.givenName} ${r.Driver?.familyName}`
+                               });
+                            }}
+                          >
+                            <span>⭐</span> Votar
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {tab === 'qualifying' && qualifying.length > 0 && (
+          <div style={{ overflowX: 'auto' }}>
+            <table className="results-table">
+              <thead>
+                <tr>
+                  {renderSortHeader('pos', 'Pos')}
+                  {renderSortHeader('driver', 'Piloto')}
+                  {renderSortHeader('team', 'Equipo')}
+                  {renderSortHeader('q1', 'Q1')}
+                  {renderSortHeader('q2', 'Q2')}
+                  {renderSortHeader('q3', 'Q3')}
+                </tr>
+              </thead>
+              <tbody>
+                {getSortedData(qualifying).map(r => {
+                  const teamColor = getTeamColor(r.Constructor?.constructorId);
+                  return (
+                    <tr key={r.position}>
+                      <td><div className="position-badge pos-other">{r.position}</div></td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} onClick={() => navigate(`/drivers/${r.Driver?.driverId}`)}>
+                          <div style={{ width: 3, height: 28, background: teamColor, borderRadius: 2 }}></div>
+                          <div style={{ fontWeight: 600 }}>{r.Driver?.givenName} {r.Driver?.familyName}</div>
+                        </div>
+                      </td>
+                      <td><span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{r.Constructor?.name}</span></td>
+                      <td style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{r.Q1 || '—'}</td>
+                      <td style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{r.Q2 || '—'}</td>
+                      <td style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{r.Q3 || '—'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {tab === 'sprint' && sprint.length > 0 && (
+          <div style={{ overflowX: 'auto' }}>
+            <table className="results-table">
+              <thead>
+                <tr>
+                  {renderSortHeader('pos', 'Pos')}
+                  {renderSortHeader('driver', 'Piloto')}
+                  {renderSortHeader('team', 'Equipo')}
+                  {renderSortHeader('time', 'Tiempo / Estado')}
+                  {renderSortHeader('pts', 'Pts')}
+                </tr>
+              </thead>
+              <tbody>
+                {getSortedData(sprint).map(r => {
+                  const pos = parseInt(r.position);
+                  const posClass = pos === 1 ? 'pos-1' : pos === 2 ? 'pos-2' : pos === 3 ? 'pos-3' : 'pos-other';
+                  const teamColor = getTeamColor(r.Constructor?.constructorId);
+                  return (
+                    <tr key={r.position}>
+                      <td><div className={`position-badge ${posClass}`}>{r.position}</div></td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} onClick={() => navigate(`/drivers/${r.Driver?.driverId}`)}>
+                          <div style={{ width: 3, height: 28, background: teamColor, borderRadius: 2 }}></div>
+                          <div style={{ fontWeight: 600 }}>{r.Driver?.givenName} {r.Driver?.familyName}</div>
+                        </div>
+                      </td>
+                      <td><span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{r.Constructor?.name}</span></td>
+                      <td style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{r.Time?.time || r.status}</td>
+                      <td style={{ fontWeight: 700, color: r.points > 0 ? 'var(--gold)' : 'var(--text-muted)' }}>{r.points}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {tab === 'pitstops' && pitstops.length > 0 && (
+          <div style={{ overflowX: 'auto' }}>
+            <table className="results-table">
+              <thead>
+                <tr>
+                  {renderSortHeader('pos', 'Parada #')}
+                  {renderSortHeader('driver', 'Piloto')}
+                  {renderSortHeader('lap', 'Vuelta')}
+                  {renderSortHeader('time', 'Hora del Día')}
+                  {renderSortHeader('duration', 'Duración Total')}
+                </tr>
+              </thead>
+              <tbody>
+                {getSortedData(pitstops).map((p, idx) => {
+                  const driverRef = race?.Results?.find(x => x.Driver.driverId === p.driverId)?.Driver;
+                  const name = driverRef ? `${driverRef.givenName} ${driverRef.familyName}` : p.driverId;
+                  return (
+                    <tr key={idx}>
+                      <td><div className="position-badge pos-other" style={{ background: 'var(--bg-card2)' }}>{p.stop}</div></td>
+                      <td><div style={{ fontWeight: 600 }}>{name}</div></td>
+                      <td>{p.lap}</td>
+                      <td style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{p.time}</td>
+                      <td style={{ fontWeight: 700, color: 'var(--red)' }}>{p.duration} s</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {tab === 'schedule' && !isPast && (
+          <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', marginTop: 16 }}>
+            {[
+              { key: 'FirstPractice', label: 'Práctica Libre 1' },
+              { key: 'SecondPractice', label: 'Práctica Libre 2 / Qualy Sprint' },
+              { key: 'ThirdPractice', label: 'Práctica Libre 3' },
+              { key: 'Sprint', label: 'Carrera Sprint' },
+              { key: 'Qualifying', label: 'Clasificación' },
+            ].map(session => {
+              const data = race?.[session.key];
+              if (!data) return null;
+              const dateObj = new Date(`${data.date}T${data.time}`);
+              return (
+                <div key={session.key} className="card" style={{ padding: 20, background: 'var(--bg-card)', border: '1px solid var(--border)', position: 'relative', overflow: 'hidden' }}>
+                  <div style={{ fontSize: '1.8rem', position: 'absolute', right: 20, top: '50%', transform: 'translateY(-50%)', opacity: 0.1 }}>
+                    {session.key.includes('Practice') ? '🏎️' : session.key === 'Sprint' ? '🚀' : '⏱️'}
+                  </div>
+                  <h3 style={{ fontSize: '1.2rem', marginBottom: 6, color: 'var(--text-base)' }}>{session.label}</h3>
+                  <div style={{ fontSize: '1rem', color: 'var(--gold)', fontWeight: 'bold' }}>
+                    {dateObj.toLocaleString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  </div>
+                  <div style={{ fontSize: '1.1rem', marginTop: 4, fontFamily: 'monospace' }}>
+                    {dateObj.toLocaleString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: userTimeZone })} hs
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -373,6 +678,17 @@ export default function RaceDetail() {
           itemSeason={year}
           onClose={() => setShowModal(false)}
           onSaved={() => { setShowModal(false); getItemStats('race', itemId).then(setStats); }}
+        />
+      )}
+
+      {selectedDriverToRate && (
+        <ReviewModal
+          type="driver"
+          itemId={selectedDriverToRate.id}
+          itemName={selectedDriverToRate.name}
+          itemSeason={year.toString()}
+          onClose={() => setSelectedDriverToRate(null)}
+          onSaved={() => setSelectedDriverToRate(null)}
         />
       )}
     </div>

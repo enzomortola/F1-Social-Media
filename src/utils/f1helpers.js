@@ -47,6 +47,30 @@ export function getCountryFlag(country = '') {
   return '🏁';
 }
 
+export function getCountryCode(country = '') {
+  const CODES = {
+    'Australia': 'au', 'Bahrain': 'bh', 'Saudi Arabia': 'sa', 'Saudi Arabi': 'sa',
+    'Japan': 'jp', 'China': 'cn', 'USA': 'us', 'United States': 'us', 'Estados Unidos': 'us',
+    'Miami': 'us', 'Italy': 'it', 'Monaco': 'mc', 'Canada': 'ca',
+    'Spain': 'es', 'España': 'es', 'Austria': 'at', 'UK': 'gb', 'United Kingdom': 'gb',
+    'Hungary': 'hu', 'Belgium': 'be', 'Netherlands': 'nl', 'Singapore': 'sg',
+    'Azerbaijan': 'az', 'Mexico': 'mx', 'México': 'mx', 'Brazil': 'br', 'Portugal': 'pt',
+    'Russia': 'ru', 'Turkey': 'tr', 'Abu Dhabi': 'ae', 'UAE': 'ae',
+    'Vietnam': 'vn', 'Argentina': 'ar', 'France': 'fr',
+    'Germany': 'de', 'South Korea': 'kr', 'India': 'in', 'Qatar': 'qa',
+    'Las Vegas': 'us', 'Mexico City': 'mx',
+    'Bolivia': 'bo', 'Chile': 'cl', 'Colombia': 'co', 'Costa Rica': 'cr',
+    'Ecuador': 'ec', 'El Salvador': 'sv', 'Guatemala': 'gt', 'Honduras': 'hn',
+    'Nicaragua': 'ni', 'Panama': 'pa', 'Panamá': 'pa', 'Paraguay': 'py',
+    'Peru': 'pe', 'Perú': 'pe', 'Puerto Rico': 'pr', 'Dominicana': 'do',
+    'Uruguay': 'uy', 'Venezuela': 've'
+  };
+  for (const [key, code] of Object.entries(CODES)) {
+    if (country.toLowerCase().includes(key.toLowerCase())) return code;
+  }
+  return null;
+}
+
 export function getDriverFlag(nationality = '') {
   const NAT_FLAGS = {
     'British': '🇬🇧', 'German': '🇩🇪', 'Spanish': '🇪🇸', 'French': '🇫🇷',
@@ -57,6 +81,23 @@ export function getDriverFlag(nationality = '') {
     'Argentine': '🇦🇷', 'Swiss': '🇨🇭', 'Belgian': '🇧🇪', 'Austrian': '🇦🇹',
   };
   return NAT_FLAGS[nationality] || '🏁';
+}
+
+export function getDriverCountryCode(nationality = '') {
+  const NAT_CODES = {
+    'British': 'gb', 'German': 'de', 'Spanish': 'es', 'French': 'fr',
+    'Finnish': 'fi', 'Australian': 'au', 'Mexican': 'mx', 'Dutch': 'nl',
+    'Italian': 'it', 'Canadian': 'ca', 'Russian': 'ru', 'Chinese': 'cn',
+    'Japanese': 'jp', 'Danish': 'dk', 'Monegasque': 'mc', 'Thai': 'th',
+    'American': 'us', 'New Zealander': 'nz', 'Polish': 'pl', 'Brazilian': 'br',
+    'Argentine': 'ar', 'Swiss': 'ch', 'Belgian': 'be', 'Austrian': 'at',
+  };
+  return NAT_CODES[nationality] || null;
+}
+
+export function getFlagUrl(code) {
+  if (!code) return null;
+  return `https://flagcdn.com/w40/${code}.png`;
 }
 
 export function getTeamColor(constructorId = '') {
@@ -92,9 +133,10 @@ export function getRatingLabel(rating) {
   return '💀 Pésima';
 }
 export function getCircuitMap(circuitId) {
-  // f1db tiene una estructura: /images/circuits/{id}/map.svg
   const baseUrl = 'https://raw.githubusercontent.com/f1db/f1db-images/main/images/circuits/';
   
+  if (!circuitId) return null;
+
   // Mapeo manual para IDs de Ergast que difieren en f1db
   const MANUAL_MAPS = {
     'albert_park': 'albert-park',

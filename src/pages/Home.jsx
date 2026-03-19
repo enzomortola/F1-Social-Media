@@ -7,11 +7,14 @@ import { onReviewsSnapshot, getGlobalStats, getItemStats } from '../lib/firestor
 import ReviewCard from '../components/ReviewCard';
 import { StarDisplay } from '../components/StarRating';
 import { TEAM_COLORS, getCountryFlag } from '../utils/f1helpers';
+import { useAuth } from '../context/AuthContext';
 
 const CURRENT_YEAR = new Date().getFullYear();
 
 export default function Home() {
   const navigate = useNavigate();
+  const { profile } = useAuth();
+  const userTimeZone = profile?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
   const [reviews, setReviews] = useState([]);
   const [stats, setStats] = useState({ reviews: 0, users: 0, ratedItems: 0 });
   const [raceStats, setRaceStats] = useState({});
@@ -131,6 +134,7 @@ export default function Home() {
                     key={race.round}
                     race={race}
                     stats={s}
+                    userTimeZone={userTimeZone}
                     onClick={() => navigate(`/races/${race.season}/${race.round}`)}
                   />
                 );
@@ -188,7 +192,9 @@ export default function Home() {
   );
 }
 
-function RaceCard({ race, stats, onClick }) {
+function RaceCard({ race, stats, userTimeZone, onClick }) {
+  const raceDateTimeStr = race?.date && race?.time ? `${race.date}T${race.time}` : null;
+  
   return (
     <div className="race-card" onClick={onClick}>
       <div className="race-card-header">
@@ -201,7 +207,11 @@ function RaceCard({ race, stats, onClick }) {
       </div>
       <div className="race-card-body">
         <div className="race-date">
-          📅 {new Date(race.date).toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}
+          {raceDateTimeStr ? (
+            <>📅 {new Date(raceDateTimeStr).toLocaleString('es-AR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: userTimeZone })} hs</>
+          ) : (
+            <>📅 {new Date(race.date + 'T12:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}</>
+          )}
         </div>
         <div className="race-rating-bar">
           {stats ? (
