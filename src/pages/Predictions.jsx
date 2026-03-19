@@ -61,14 +61,14 @@ function useDriverImages(drivers) {
   return images;
 }
 
-function emptyOrder() { return Array(22).fill(''); }
+function emptyOrder() { return Array(10).fill(''); }
 function orderToObj(arr) {
   const obj = {};
   arr.forEach((v, i) => { obj[`p${i + 1}`] = v || ''; });
   return obj;
 }
 function objToOrder(obj) {
-  return Array.from({ length: 22 }, (_, i) => obj?.[`p${i + 1}`] || '');
+  return Array.from({ length: 10 }, (_, i) => obj?.[`p${i + 1}`] || '');
 }
 
 const MEDAL = ['#FFD700', '#C0C0C0', '#CD7F32'];
@@ -228,7 +228,7 @@ function PredictForm({ user }) {
             onClick={() => s.available && setActiveSection(s.key)}
             title={!s.available ? 'Este GP no tiene Sprint' : undefined}
             style={{ padding: '10px 18px', borderRadius: 'var(--radius-md)', border: `2px solid ${activeSection === s.key ? s.color : 'var(--border)'}`, background: activeSection === s.key ? `${s.color}20` : 'var(--bg-card)', color: activeSection === s.key ? s.color : s.available ? 'var(--text-secondary)' : 'var(--text-muted)', fontWeight: 700, fontSize: '0.88rem', cursor: s.available ? 'pointer' : 'not-allowed', opacity: s.available ? 1 : 0.4, transition: 'all 0.2s' }}>
-            {s.label} {s.available && <span style={{ marginLeft: 6, fontSize: '0.7rem', opacity: 0.7 }}>{s.order.filter(Boolean).length}/22</span>}
+            {s.label} {s.available && <span style={{ marginLeft: 6, fontSize: '0.7rem', opacity: 0.7 }}>{s.order.filter(Boolean).length}/10</span>}
           </button>
         ))}
       </div>
@@ -272,8 +272,8 @@ function StartingGrid({ order, setOrder, drivers, driverImages, loading, accentC
   const available = drivers.filter(d => !used.has(d.driverId) || order[pickerPos] === d.driverId);
   const filtered = search ? available.filter(d => `${d.givenName} ${d.familyName} ${d.code || ''}`.toLowerCase().includes(search.toLowerCase())) : available;
 
-  // 11 rows × 2 columns (left = odd positions, right = even positions)
-  const rows = Array.from({ length: 11 }, (_, i) => [i * 2, i * 2 + 1]);
+  // 5 rows × 2 columns (left = odd positions, right = even positions) -> top 10
+  const rows = Array.from({ length: 5 }, (_, i) => [i * 2, i * 2 + 1]);
 
   if (loading) return <div className="loading-center"><div className="spinner"></div></div>;
 
@@ -459,12 +459,12 @@ function Rules() {
     <div className="card" style={{ padding: 32 }}>
       <h2 style={{ marginBottom: 8 }}>📖 Sistema de Puntos</h2>
       <p style={{ color: 'var(--text-secondary)', marginBottom: 28, lineHeight: 1.6 }}>
-        Antes de cada fin de semana podés predecir el orden de los <strong>22 pilotos</strong> en cada sesión. Cuanto más acertás, más puntos sumás al ranking global.
+        Antes de cada fin de semana podés predecir el orden de los <strong>primeros 10 pilotos</strong> en cada sesión. Cuanto más acertás, más puntos sumás al ranking global.
       </p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {section('⏱ Clasificación', 'var(--red)', [['P1 exacto (Pole)', 10], ['P2 exacto', 6], ['P3 exacto', 5], ['P4–P10 exacto', 3], ['P11+ exacto', 1], ['Top-5 correcto (no exacto)', 1]])}
-        {section('🚀 Carrera Sprint', '#ff6b35', [['P1 exacto', 8], ['P2 exacto', 5], ['P3 exacto', 4], ['P4–P8 exacto', 2], ['P9+ exacto', 1], ['Top-3 correcto (no exacto)', 1]], '* Solo disponible en fines de semana Sprint.')}
-        {section('🏆 Carrera Principal', 'var(--gold)', [['P1 exacto (Ganador)', 15], ['P2 exacto', 10], ['P3 exacto', 8], ['P4–P10 exacto', 4], ['P11+ exacto', 2], ['Top-10 correcto (no exacto)', 1]])}
+        {section('⏱ Clasificación', 'var(--red)', [['P1 exacto (Pole)', 10], ['P2 exacto', 8], ['P3 exacto', 6], ['P4–P10 exacto', 3], ['Acertar 6+ pilotos en el Top-10 (sin orden)', 5]])}
+        {section('🚀 Carrera Sprint', '#ff6b35', [['P1 exacto', 8], ['P2 exacto', 6], ['P3 exacto', 4], ['P4–P10 exacto', 2], ['Acertar 6+ pilotos en el Top-10 (sin orden)', 3]], '* Solo disponible en fines de semana Sprint.')}
+        {section('🏆 Carrera Principal', 'var(--gold)', [['P1 exacto (Ganador)', 15], ['P2 exacto', 10], ['P3 exacto', 8], ['P4–P10 exacto', 5], ['Acertar 6+ pilotos en el Top-10 (sin orden)', 10]])}
       </div>
       <div style={{ marginTop: 24, padding: 16, background: 'rgba(232,0,45,0.05)', border: '1px solid rgba(232,0,45,0.2)', borderRadius: 'var(--radius-md)' }}>
         <h4 style={{ color: 'var(--red)', marginBottom: 8 }}>Importante</h4>
@@ -558,15 +558,15 @@ function CommunityPredictions({ user }) {
                     <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{pred.displayName || 'Usuario'}</div>
                     {isOwn && <div style={{ fontSize: '0.7rem', color: sessionColor }}>Tu predicción</div>}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{order.length}/22</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{order.length}/10</div>
                 </div>
 
-                {/* Ordered list (top 10 visible, rest collapsed) */}
+                {/* Ordered list */}
                 <div style={{ padding: '10px 16px 14px' }}>
                   {order.length === 0 ? (
                     <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>Sin predicción para esta sesión</div>
                   ) : (
-                    order.slice(0, 22).map((dId, idx) => {
+                    order.slice(0, 10).map((dId, idx) => {
                       const d = driverById[dId];
                       const meta = getMeta(dId);
                       return (
