@@ -20,19 +20,33 @@ export async function getUserPrediction(userId, raceId) {
 export async function saveUserPrediction(userId, raceId, predictionData, userInfo = {}) {
   if (!userId || !raceId) throw new Error("Missing params");
 
-  const docRef = doc(db, 'users', userId, 'predictions', raceId);
-  await setDoc(docRef, { ...predictionData, raceId, updatedAt: serverTimestamp() }, { merge: true });
+  // Limpiar undefined/null de los datos para Firestore
+  function clean(obj) {
+    const out = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (v !== undefined && v !== null) out[k] = v;
+    }
+    return out;
+  }
 
-  // Registro global con info del usuario para la vista comunitaria
-  const globalRef = doc(db, 'predictions', `${raceId}_${userId}`);
-  await setDoc(globalRef, {
-    userId,
-    raceId,
-    displayName: userInfo.displayName || '',
-    photoURL: userInfo.photoURL || null,
-    ...predictionData,
-    updatedAt: serverTimestamp(),
-  }, { merge: true });
+  // 1. Guardado principal en subcollección del usuario (crítico)
+  const docRef = doc(db, 'users', userId, 'predictions', raceId);
+  await setDoc(docRef, clean({ ...predictionData, raceId, updatedAt: serverTimestamp() }), { merge: true });
+
+  // 2. Registro global para vista comunitaria (best-effort, no bloquea)
+  try {
+    const globalRef = doc(db, 'predictions', `${raceId}_${userId}`);
+    await setDoc(globalRef, clean({
+      userId,
+      raceId,
+      displayName: userInfo.displayName || '',
+      photoURL: userInfo.photoURL || null,
+      ...predictionData,
+      updatedAt: serverTimestamp(),
+    }), { merge: true });
+  } catch (err) {
+    console.warn('[Predictions] No se pudo guardar en colección global (verificá las reglas de Firestore para la colección "predictions"):', err.message);
+  }
 }
 
 // Obtener todas las predicciones de todos los usuarios para una carrera

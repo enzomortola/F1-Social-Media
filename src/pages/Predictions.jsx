@@ -162,10 +162,13 @@ function PredictForm({ user }) {
       await saveUserPrediction(
         user.uid, selectedRace,
         { qualy: orderToObj(qualyOrder), sprint: orderToObj(sprintOrder), race: orderToObj(raceOrder) },
-        { displayName: user.displayName, photoURL: user.photoURL }
+        { displayName: user.displayName || user.email?.split('@')[0] || 'Usuario', photoURL: user.photoURL || null }
       );
       setSavedStatus('success'); setTimeout(() => setSavedStatus(null), 3000);
-    } catch { setSavedStatus('error'); setTimeout(() => setSavedStatus(null), 3000); }
+    } catch (err) {
+      console.error('[Predictions] Error al guardar predicción:', err);
+      setSavedStatus('error'); setTimeout(() => setSavedStatus(null), 3000);
+    }
   };
 
   if (!user) return (
