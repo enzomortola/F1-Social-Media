@@ -38,6 +38,9 @@ export default function Navbar() {
           <NavLink to="/reviews" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`} onClick={() => setMenuOpen(false)}>
             Reviews
           </NavLink>
+          <NavLink to="/predictions" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`} onClick={() => setMenuOpen(false)}>
+            Pronósticos
+          </NavLink>
         </div>
 
         <div className="nav-actions">

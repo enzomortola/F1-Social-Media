@@ -14,10 +14,11 @@ const DriverDetail = lazy(() => import('./pages/DriverDetail'));
 const Seasons    = lazy(() => import('./pages/Seasons'));
 const SeasonDetail = lazy(() => import('./pages/SeasonDetail'));
 const Reviews    = lazy(() => import('./pages/Reviews'));
-const Login      = lazy(() => import('./pages/Login'));
-const Register   = lazy(() => import('./pages/Register'));
-const Profile    = lazy(() => import('./pages/Profile'));
-const NotFound   = lazy(() => import('./pages/NotFound'));
+const Login        = lazy(() => import('./pages/Login'));
+const Register     = lazy(() => import('./pages/Register'));
+const Profile      = lazy(() => import('./pages/Profile'));
+const Predictions  = lazy(() => import('./pages/Predictions'));
+const NotFound     = lazy(() => import('./pages/NotFound'));
 
 export default function App() {
   return (
@@ -38,6 +39,7 @@ export default function App() {
           <Route path="/register"        element={<Register />} />
           <Route path="/profile"         element={<Profile />} />
           <Route path="/profile/:userId" element={<Profile />} />
+          <Route path="/predictions"     element={<Predictions />} />
           <Route path="*"                element={<NotFound />} />
         </Routes>
       </Suspense>

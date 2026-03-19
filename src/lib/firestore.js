@@ -157,13 +157,36 @@ export async function getWatchlist(userId) {
 // ── PERFIL DE USUARIO ─────────────────────────────────────────────────────────
 
 export async function createUserProfile(userId, { displayName, email, photoURL }) {
-  await setDoc(doc(db, 'users', userId), {
-    displayName, email, photoURL: photoURL || null,
-    bio: '', favoriteTeam: '', favoriteDriver: '',
-    reviewsCount: 0, followersCount: 0, followingCount: 0,
-    followers: [], following: [],
-    createdAt: serverTimestamp(),
-  }, { merge: true });
+  const ref = doc(db, 'users', userId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) {
+    // Solo creamos el doc si no existe aún (primer registro)
+    await setDoc(ref, {
+      displayName: displayName || email?.split('@')[0] || 'Usuario',
+      email: email || '',
+      photoURL: photoURL || null,
+      bio: '',
+      favoriteTeam: '',
+      favoriteDriver: '',
+      country: '',
+      timezone: '',
+      predictionPoints: 0,
+      reviewsCount: 0,
+      followersCount: 0,
+      followingCount: 0,
+      followers: [],
+      following: [],
+      createdAt: serverTimestamp(),
+    });
+  } else {
+    // Si ya existe, solo actualizamos los campos de Auth que pueden haber cambiado
+    const updates = {};
+    if (displayName && !snap.data().displayName) updates.displayName = displayName;
+    if (photoURL && !snap.data().photoURL) updates.photoURL = photoURL;
+    if (Object.keys(updates).length > 0) {
+      await setDoc(ref, updates, { merge: true });
+    }
+  }
 }
 
 export async function getUserProfile(userId) {
