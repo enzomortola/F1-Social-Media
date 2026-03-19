@@ -18,6 +18,7 @@ const Login        = lazy(() => import('./pages/Login'));
 const Register     = lazy(() => import('./pages/Register'));
 const Profile      = lazy(() => import('./pages/Profile'));
 const Predictions  = lazy(() => import('./pages/Predictions'));
+const About        = lazy(() => import('./pages/About'));
 const NotFound     = lazy(() => import('./pages/NotFound'));
 
 export default function App() {
@@ -40,6 +41,7 @@ export default function App() {
           <Route path="/profile"         element={<Profile />} />
           <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/predictions"     element={<Predictions />} />
+          <Route path="/about"           element={<About />} />
           <Route path="*"                element={<NotFound />} />
         </Routes>
       </Suspense>

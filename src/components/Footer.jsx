@@ -29,6 +29,11 @@ export default function Footer() {
               <Link to="/register">Registrarse</Link>
               <Link to="/profile">Mi perfil</Link>
             </div>
+            <div className="footer-col">
+              <h4>Proyecto</h4>
+              <Link to="/about">Acerca de</Link>
+              <a href="https://github.com/enzomortola/F1-Social-Media" target="_blank" rel="noopener noreferrer">GitHub</a>
+            </div>
           </div>
         </div>
         <div className="footer-bottom">
